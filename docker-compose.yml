@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  server:
+    container_name: server
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    ports:
+      - '4040:4040'
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    restart: 'unless-stopped'
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
