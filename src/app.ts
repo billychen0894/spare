@@ -1,6 +1,7 @@
 import { CREDENTIALS, LOG_FORMAT, NODE_ENV, ORIGIN, PORT } from '@config';
 import { stream } from '@utils/logger';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -30,6 +31,7 @@ export class App {
     this.app.use(compression());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(cookieParser());
   }
   private initializeRoutes() {}
   private initializeErrorHandling() {}
