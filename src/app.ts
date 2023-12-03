@@ -2,6 +2,7 @@ import { CREDENTIALS, LOG_FORMAT, NODE_ENV, ORIGIN, PORT } from '@config';
 import { stream } from '@utils/logger';
 import cors from 'cors';
 import express from 'express';
+import hpp from 'hpp';
 import morgan from 'morgan';
 
 export class App {
@@ -22,6 +23,8 @@ export class App {
   private initializeMiddlewares() {
     this.app.use(morgan(LOG_FORMAT!, { stream }));
     this.app.use(cors({ origin: ORIGIN, credentials: CREDENTIALS }));
+    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(hpp());
   }
   private initializeRoutes() {}
   private initializeErrorHandling() {}
