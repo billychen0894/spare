@@ -1,5 +1,6 @@
 import { CREDENTIALS, LOG_FORMAT, NODE_ENV, ORIGIN, PORT } from '@config';
 import { stream } from '@utils/logger';
+import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -22,12 +23,13 @@ export class App {
   }
 
   private initializeMiddlewares() {
-    this.app.use(helmet());
-    this.app.use(hpp());
     this.app.use(morgan(LOG_FORMAT!, { stream }));
     this.app.use(cors({ origin: ORIGIN, credentials: CREDENTIALS }));
-    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(hpp());
+    this.app.use(helmet());
+    this.app.use(compression());
     this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
   }
   private initializeRoutes() {}
   private initializeErrorHandling() {}
