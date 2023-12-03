@@ -1,5 +1,7 @@
 import { CREDENTIALS, LOG_FORMAT, NODE_ENV, ORIGIN, PORT } from '@config';
-import { stream } from '@utils/logger';
+import { Routes } from '@interfaces/routes.interface';
+import { ErrorMiddleware } from '@middlewares/error.middleware';
+import { logger, stream } from '@utils/logger';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -13,14 +15,27 @@ export class App {
   public env: string;
   public port: string | number;
 
-  constructor() {
+  constructor(routes: Routes[]) {
     this.app = express();
     this.env = NODE_ENV || 'development';
     this.port = PORT || 4040;
 
     this.initializeMiddlewares();
-    this.initializeRoutes();
+    this.initializeRoutes(routes);
     this.initializeErrorHandling();
+  }
+
+  public listen() {
+    this.app.listen(PORT, () => {
+      logger.info(`=================================`);
+      logger.info(`======= ENV: ${this.env} =======`);
+      logger.info(`🚀 App listening on the port ${this.port}`);
+      logger.info(`=================================`);
+    });
+  }
+
+  public getServer() {
+    return this.app;
   }
 
   private initializeMiddlewares() {
@@ -33,7 +48,13 @@ export class App {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
   }
-  private initializeRoutes() {}
-  private initializeErrorHandling() {}
-  public listen() {}
+  private initializeRoutes(routes: Routes[]) {
+    routes.forEach(route => {
+      this.app.use('/', route.router);
+    });
+  }
+
+  private initializeErrorHandling() {
+    this.app.use(ErrorMiddleware);
+  }
 }
