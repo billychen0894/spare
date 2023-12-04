@@ -9,17 +9,20 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import hpp from 'hpp';
+import { IncomingMessage, Server, ServerResponse, createServer } from 'http';
 import morgan from 'morgan';
 
 export class App {
   public app: express.Application;
   public env: string;
   public port: string | number;
+  public httpServer: Server<typeof IncomingMessage, typeof ServerResponse>;
 
   constructor(routes: Routes[]) {
     this.app = express();
     this.env = NODE_ENV || 'development';
     this.port = PORT || 4040;
+    this.httpServer = createServer(this.app);
 
     this.initializeMiddlewares();
     this.initializeRoutes(routes);
@@ -27,7 +30,7 @@ export class App {
   }
 
   public listen() {
-    this.app.listen(PORT, () => {
+    this.httpServer.listen(PORT, () => {
       logger.info(`=================================`);
       logger.info(`======= ENV: ${this.env} =======`);
       logger.info(`🚀 App listening on the port ${this.port}`);
@@ -37,6 +40,10 @@ export class App {
 
   public getServer() {
     return this.app;
+  }
+
+  public getHttpServer() {
+    return this.httpServer;
   }
 
   private initializeMiddlewares() {
