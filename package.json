@@ -26,6 +26,7 @@
     "@types/hpp": "^0.2.5",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.10.2",
+    "@types/uuid": "^9.0.7",
     "@types/winston": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
@@ -56,6 +57,7 @@
     "reflect-metadata": "^0.1.13",
     "socket.io": "^4.7.2",
     "typedi": "^0.10.0",
+    "uuid": "^9.0.1",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^4.7.1"
   }
