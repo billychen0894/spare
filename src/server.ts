@@ -1,11 +1,12 @@
 import { App } from '@/app';
+import { ChatRoute } from '@/routes/chats.route';
 import { ValidateEnv } from '@utils/validateEnv';
 import { ChatSocket } from '@websocket/chat.socket';
 import { Websocket } from '@websocket/websocket';
 
 ValidateEnv();
 
-const app = new App([]);
+const app = new App([new ChatRoute()]);
 
 const httpServer = app.getHttpServer();
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
