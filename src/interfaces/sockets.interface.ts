@@ -10,3 +10,10 @@ export interface ChatRoom {
   state: 'idle' | 'occupied';
   participants: Set<string>;
 }
+
+export interface ChatMessage {
+  sender: string;
+  receiver: string;
+  message: string;
+  timestamp: number;
+}
