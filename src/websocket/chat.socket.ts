@@ -16,6 +16,7 @@ export class ChatSocket implements SocketInterface {
       console.log(`Socket ${socket.id} is connected...`);
     });
     this.chatService.joinChatRoom(socket, 'join-room');
+    this.chatService.initMessagingToChatRoom(socket, 'chat-message');
   }
 }
 

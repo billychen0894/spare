@@ -1,4 +1,4 @@
-import { ChatRoom } from '@/interfaces/sockets.interface';
+import { ChatMessage, ChatRoom } from '@/interfaces/sockets.interface';
 import { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,12 +29,14 @@ export class ChatRoomManager {
       room.participants.add(socket.id);
       room.state = 'occupied';
       console.log(`Current Rooms: ${this.activeChatRooms.size}`);
+      console.log(`Socket in rooms: ${Array.from(socket.rooms)}`);
     }
 
     if (room && room.state === 'idle' && room.participants.size === 0) {
       socket.join(chatRoomId);
       room.participants.add(socket.id);
       console.log(`Current Rooms: ${this.activeChatRooms.size}`);
+      console.log(`Socket in rooms: ${Array.from(socket.rooms)}`);
     }
   }
 
@@ -60,5 +62,21 @@ export class ChatRoomManager {
     });
 
     return result;
+  }
+
+  public onMessageToChatRoom(socket: Socket, event: string): void {
+    socket.on(event, (messageObj: ChatMessage) => {
+      // 0 index is the roomId that is automatically assigned by Socket.io, roomId is its socket.id
+      // 1 index is the roomId that is explictly assigned
+      if (socket.rooms.size === 2) {
+        const chatRoomId: string = Array.from(socket.rooms)[1];
+        const currChatRoom = this.activeChatRooms.get(chatRoomId)!;
+        const participants: string[] = Array.from(currChatRoom?.participants);
+
+        messageObj.receiver = socket.id !== participants[0] ? participants[0] : participants[1];
+
+        socket.to(Array.from(socket.rooms)[1]).emit(event, messageObj);
+      }
+    });
   }
 }

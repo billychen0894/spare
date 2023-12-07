@@ -19,4 +19,8 @@ export class ChatService {
       this.chatRoomManager.joinChatRoom(socket, chatRoomId);
     });
   }
+
+  public initMessagingToChatRoom(socket: Socket, event: string) {
+    return this.chatRoomManager.onMessageToChatRoom(socket, event);
+  }
 }
