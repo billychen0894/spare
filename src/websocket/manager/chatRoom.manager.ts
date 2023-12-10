@@ -68,11 +68,7 @@ export class ChatRoomManager {
       // 0 index is the roomId that is automatically assigned by Socket.io, roomId is its socket.id
       // 1 index is the roomId that is explictly assigned
       if (socket.rooms.size === 2) {
-        const chatRoomId: string = Array.from(socket.rooms)[1];
-        const currChatRoom = this.activeChatRooms.get(chatRoomId)!;
-        const participants: string[] = Array.from(currChatRoom?.participants);
-
-        messageObj.receiver = socket.id !== participants[0] ? participants[0] : participants[1];
+        messageObj.timestamp = Date.now();
 
         socket.to(Array.from(socket.rooms)[1]).emit(event, messageObj);
       }
