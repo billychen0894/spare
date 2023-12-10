@@ -7,8 +7,8 @@ export class ChatController {
 
   public createChatRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const chatRoomId = this.chat.createChatRoomId();
-      res.status(200).json({ chatRoomId });
+      const chatRoom = this.chat.createChatRoom();
+      res.status(200).json({ chatRoom });
     } catch (error) {
       next(error);
     }
