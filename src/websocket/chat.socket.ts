@@ -17,6 +17,13 @@ export class ChatSocket implements SocketInterface {
     });
     this.chatService.joinChatRoom(socket, 'join-room');
     this.chatService.initMessagingToChatRoom(socket, 'chat-message');
+    this.chatService.leaveChatRoom(socket, 'leave-chat');
+    this.chatService.onChatRoomConnected(socket, 'chatRoom-connected');
+  }
+
+  public middlewareImplementation(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, next: any): void {
+    console.log(`New connection: ${socket.id}`);
+    next();
   }
 }
 

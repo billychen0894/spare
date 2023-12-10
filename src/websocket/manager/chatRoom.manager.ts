@@ -9,34 +9,31 @@ export class ChatRoomManager {
     this.activeChatRooms = new Map<string, ChatRoom>();
   }
 
-  public createChatRoom(): string {
+  public createChatRoom(): ChatRoom {
     const idleChatRooms = this.getIdleChatRooms();
 
     if (idleChatRooms.length > 0) {
-      return idleChatRooms[0].id;
+      return idleChatRooms[0];
     } else {
       const chatRoomId = uuidv4();
       this.activeChatRooms.set(chatRoomId, { id: chatRoomId, state: 'idle', participants: new Set<string>() });
-      return chatRoomId;
+      return { id: chatRoomId, state: 'idle', participants: new Set<string>() };
     }
   }
 
-  public joinChatRoom(socket: Socket, chatRoomId: string): void {
-    const room = this.activeChatRooms.get(chatRoomId);
+  public joinChatRoom(socket: Socket, chatRoom: ChatRoom): void {
+    const room = this.activeChatRooms.get(chatRoom.id);
 
     if (room && room.state === 'idle' && room.participants.size === 1) {
-      socket.join(chatRoomId);
+      socket.join(chatRoom.id);
       room.participants.add(socket.id);
       room.state = 'occupied';
-      console.log(`Current Rooms: ${this.activeChatRooms.size}`);
-      console.log(`Socket in rooms: ${Array.from(socket.rooms)}`);
+      socket.to(room.id).emit('chatRoom-connected', { id: room.id, state: room.state, participants: Array.from(room.participants) });
     }
 
     if (room && room.state === 'idle' && room.participants.size === 0) {
-      socket.join(chatRoomId);
+      socket.join(chatRoom.id);
       room.participants.add(socket.id);
-      console.log(`Current Rooms: ${this.activeChatRooms.size}`);
-      console.log(`Socket in rooms: ${Array.from(socket.rooms)}`);
     }
   }
 
@@ -46,6 +43,8 @@ export class ChatRoomManager {
     if (room) {
       socket.leave(chatRoomId);
       room.participants.delete(socket.id);
+      room.state = 'idle';
+      socket.to(room.id).emit('left-chat', 'Someone has left the chat');
 
       if (room.participants.size === 0 && room.state === 'idle') {
         this.activeChatRooms.delete(chatRoomId);
@@ -77,6 +76,12 @@ export class ChatRoomManager {
 
         socket.to(Array.from(socket.rooms)[1]).emit(event, messageObj);
       }
+    });
+  }
+
+  public onChatRoomConnected(socket: Socket, event: string): void {
+    socket.on(event, (chatRoom: ChatRoom) => {
+      socket.to(chatRoom.id).emit('chatRoom-connected', chatRoom);
     });
   }
 }
