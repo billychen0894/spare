@@ -1,4 +1,4 @@
-import { RedisClientType, createClient } from '@redis/client';
+import { RedisClientType, createClient } from 'redis';
 
 export class RedisClient {
   private static instance: RedisClient;
@@ -6,7 +6,6 @@ export class RedisClient {
 
   private constructor() {
     this.client = createClient();
-
     this.client.on('connection', () => {
       console.log('🚀 Connected to Redis');
     });
