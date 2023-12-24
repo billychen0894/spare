@@ -1,5 +1,5 @@
-# Use NodeJS Version 16 base image
-FROM node:16.18-buster-slim
+# Use NodeJS Version 18 base image
+FROM node:18-buster-slim
 
 # Copy current directory to ./app within the docker image
 COPY . ./app

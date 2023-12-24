@@ -15,7 +15,7 @@ services:
     networks:
       - backend
 
-  redis-stack-server:
+  redis-server:
     image: redis/redis-stack:latest
     ports:
       - '6379:6379'
