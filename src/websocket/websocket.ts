@@ -1,4 +1,4 @@
-import { ORIGIN } from '@/config';
+import { SOCKET_ORIGIN } from '@/config';
 import { SocketInterface } from '@/interfaces/sockets.interface';
 import { Server, Socket } from 'socket.io';
 
@@ -8,7 +8,7 @@ export class Websocket extends Server {
   constructor(httpServer: any) {
     super(httpServer, {
       cors: {
-        origin: ORIGIN,
+        origin: SOCKET_ORIGIN,
         methods: ['POST', 'GET'],
       },
     });
