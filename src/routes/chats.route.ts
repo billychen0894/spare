@@ -11,7 +11,5 @@ export class ChatRoute implements Routes {
     this.initializeRoutes();
   }
 
-  private initializeRoutes() {
-    this.router.post(`${this.path}/create-room`, this.chat.createChatRoom);
-  }
+  private initializeRoutes() {}
 }
