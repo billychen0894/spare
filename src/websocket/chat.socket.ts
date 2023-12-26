@@ -15,10 +15,10 @@ export class ChatSocket implements SocketInterface {
     socket.on('connection', socket => {
       console.log(`Socket ${socket.id} is connected...`);
     });
-    this.chatService.joinChatRoom(socket, 'join-room');
     this.chatService.initMessagingToChatRoom(socket, 'chat-message');
     this.chatService.leaveChatRoom(socket, 'leave-chat');
     this.chatService.onChatRoomConnected(socket, 'chatRoom-connected');
+    this.chatService.startChat(socket, 'start-chat');
   }
 
   public middlewareImplementation(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, next: any): void {

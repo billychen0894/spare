@@ -1,39 +1,35 @@
 import { ChatMessage, ChatRoom } from '@/interfaces/sockets.interface';
+import { RedisService } from '@/services/redis.service';
 import { Socket } from 'socket.io';
-import { v4 as uuidv4 } from 'uuid';
+import Container from 'typedi';
 
 export class ChatRoomManager {
   private activeChatRooms: Map<string, ChatRoom>;
+  private redisService: RedisService;
+  private userSockets: Map<string, Socket>;
 
   constructor() {
     this.activeChatRooms = new Map<string, ChatRoom>();
+    this.redisService = Container.get(RedisService);
+    this.userSockets = new Map<string, Socket>();
   }
 
-  public createChatRoom(): ChatRoom {
-    const idleChatRooms = this.getIdleChatRooms();
+  public async startChat(socket: Socket, userId: string): Promise<void> {
+    this.userSockets.set(userId, socket);
 
-    if (idleChatRooms.length > 0) {
-      return idleChatRooms[0];
-    } else {
-      const chatRoomId = uuidv4();
-      this.activeChatRooms.set(chatRoomId, { id: chatRoomId, state: 'idle', participants: new Set<string>() });
-      return { id: chatRoomId, state: 'idle', participants: new Set<string>() };
-    }
-  }
+    await this.redisService.addUserToQueue(userId);
+    const isPaired = await this.redisService.pairUsers();
 
-  public joinChatRoom(socket: Socket, chatRoom: ChatRoom): void {
-    const room = this.activeChatRooms.get(chatRoom.id);
+    if (isPaired) {
+      const otherPairedUserId = Array.from(isPaired.participants).find(id => id !== userId);
 
-    if (room && room.state === 'idle' && room.participants.size === 1) {
-      socket.join(chatRoom.id);
-      room.participants.add(socket.id);
-      room.state = 'occupied';
-      socket.to(room.id).emit('chatRoom-connected', { id: room.id, state: room.state, participants: Array.from(room.participants) });
-    }
+      if (otherPairedUserId) {
+        const otherPairedSocket = this.userSockets.get(otherPairedUserId);
+        socket.join(isPaired.id);
+        otherPairedSocket?.join(isPaired.id);
 
-    if (room && room.state === 'idle' && room.participants.size === 0) {
-      socket.join(chatRoom.id);
-      room.participants.add(socket.id);
+        socket.to(isPaired.id).emit('chatRoom-connected', isPaired);
+      }
     }
   }
 
@@ -44,6 +40,7 @@ export class ChatRoomManager {
       socket.leave(chatRoomId);
       room.participants.delete(socket.id);
       room.state = 'idle';
+      this.userSockets.delete(socket.id);
       socket.to(room.id).emit('left-chat', 'Someone has left the chat');
 
       if (room.participants.size === 0 && room.state === 'idle') {
