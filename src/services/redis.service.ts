@@ -40,4 +40,27 @@ export class RedisService {
   public async createChatRoom(roomId: string, user1: string, user2: string): Promise<void> {
     await this.redisClient.hSet('chatRooms', roomId, JSON.stringify({ state: 'occupied', participants: [user1, user2] }));
   }
+
+  public async leaveChatRoomById(roomId: string, socketId: string): Promise<void> {
+    const roomData = await this.redisClient.hGet('chatRooms', roomId);
+
+    if (roomData) {
+      const roomObj = JSON.parse(roomData) as { state: 'occupied' | 'idle'; participants: string[] };
+
+      const socketIdIndex = roomObj.participants.indexOf(socketId);
+
+      if (socketIdIndex > -1) {
+        roomObj.participants.splice(socketIdIndex, 1);
+        roomObj.state = 'idle';
+        await this.redisClient.hDel('userStatus', socketId);
+
+        const updatedRoomData = JSON.stringify(roomObj);
+        await this.redisClient.hSet('chatRooms', roomId, updatedRoomData);
+      }
+
+      if (roomObj.participants.length === 0) {
+        await this.redisClient.hDel('chatRooms', roomId);
+      }
+    }
+  }
 }

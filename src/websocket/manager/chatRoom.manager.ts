@@ -33,19 +33,13 @@ export class ChatRoomManager {
     }
   }
 
-  public leaveChatRoom(socket: Socket, chatRoomId: string): void {
-    const room = this.activeChatRooms.get(chatRoomId);
+  public async leaveChatRoom(socket: Socket, chatRoomId: string): Promise<void> {
+    if (chatRoomId) {
+      await this.redisService.leaveChatRoomById(chatRoomId, socket.id);
 
-    if (room) {
+      socket.to(chatRoomId).emit('left-chat', 'Someone has left the chat');
       socket.leave(chatRoomId);
-      room.participants.delete(socket.id);
-      room.state = 'idle';
       this.userSockets.delete(socket.id);
-      socket.to(room.id).emit('left-chat', 'Someone has left the chat');
-
-      if (room.participants.size === 0 && room.state === 'idle') {
-        this.activeChatRooms.delete(chatRoomId);
-      }
     }
   }
 
