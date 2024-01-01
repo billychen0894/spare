@@ -4,12 +4,10 @@ import { Socket } from 'socket.io';
 import Container from 'typedi';
 
 export class ChatRoomManager {
-  private activeChatRooms: Map<string, ChatRoom>;
   private redisService: RedisService;
   private userSockets: Map<string, Socket>;
 
   constructor() {
-    this.activeChatRooms = new Map<string, ChatRoom>();
     this.redisService = Container.get(RedisService);
     this.userSockets = new Map<string, Socket>();
   }
@@ -41,17 +39,6 @@ export class ChatRoomManager {
       socket.leave(chatRoomId);
       this.userSockets.delete(socket.id);
     }
-  }
-
-  public getIdleChatRooms(): ChatRoom[] {
-    const result: ChatRoom[] = [];
-    this.activeChatRooms.forEach(chatRoom => {
-      if (chatRoom.state === 'idle') {
-        result.push(chatRoom);
-      }
-    });
-
-    return result;
   }
 
   public onMessageToChatRoom(socket: Socket, event: string): void {
