@@ -63,4 +63,19 @@ export class RedisService {
       }
     }
   }
+
+  public async checkUserSession(sessionId: string): Promise<boolean> {
+    try {
+      if (sessionId) {
+        const userSession = await this.redisClient.hGet('userStatus', sessionId);
+
+        return userSession ? true : false;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
 }
