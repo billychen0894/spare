@@ -17,3 +17,7 @@ export interface ChatMessage {
   message: string;
   timestamp: number;
 }
+
+export interface CustomSocket extends Socket {
+  sessionId?: string;
+}
