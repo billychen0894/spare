@@ -25,11 +25,11 @@ export class Websocket extends Server {
   public initializeHandlers(socketHandlers: Array<{ path: string; handler: SocketInterface }>) {
     socketHandlers.forEach(element => {
       const namespace = Websocket.io.of(element.path, (socket: Socket) => {
-        element.handler.handleConnection(socket);
+        element.handler.handleConnection.bind(element.handler)(socket);
       });
 
       if (element.handler.middlewareImplementation) {
-        namespace.use(element.handler.middlewareImplementation);
+        namespace.use(element.handler.middlewareImplementation.bind(element.handler));
       }
     });
   }
