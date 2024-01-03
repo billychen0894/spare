@@ -20,4 +20,5 @@ export interface ChatMessage {
 
 export interface CustomSocket extends Socket {
   sessionId?: string;
+  chatRoomId?: string;
 }
