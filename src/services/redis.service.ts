@@ -78,4 +78,21 @@ export class RedisService {
       return false;
     }
   }
+
+  public async getChatRoomById(chatRoomId: string): Promise<{ state: 'occupied' | 'idle'; participants: Set<string> } | undefined | null> {
+    try {
+      if (chatRoomId) {
+        const chatRoomObj = await this.redisClient.hGet('chatRooms', chatRoomId);
+
+        if (chatRoomObj) {
+          return JSON.parse(chatRoomObj);
+        }
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
 }
