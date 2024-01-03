@@ -1,34 +1,44 @@
-import { SocketInterface } from '@/interfaces/sockets.interface';
+import { CustomSocket, SocketInterface } from '@/interfaces/sockets.interface';
 import { ChatService } from '@/services/chat.service';
-import { Socket } from 'socket.io';
-import { DefaultEventsMap } from 'socket.io/dist/typed-events';
+import { RedisService } from '@/services/redis.service';
 import Container from 'typedi';
 
 export class ChatSocket implements SocketInterface {
   private chatService: ChatService;
+  private redisService: RedisService;
 
   constructor() {
+    this.redisService = Container.get(RedisService);
     this.chatService = Container.get(ChatService);
   }
 
-  public handleConnection(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>): void {
-    socket.on('connection', socket => {
-      console.log(`Socket ${socket.id} is connected...`);
-    });
+  public handleConnection(socket: CustomSocket): void {
+    socket.emit('session', { sessionId: socket.sessionId, chatRoomId: socket.chatRoomId });
+
     this.chatService.initMessagingToChatRoom(socket, 'chat-message');
     this.chatService.leaveChatRoom(socket, 'leave-chat');
-    this.chatService.onChatRoomConnected(socket, 'chatRoom-connected');
     this.chatService.startChat(socket, 'start-chat');
   }
 
-  public middlewareImplementation(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, next: any): void {
+  public async middlewareImplementation(socket: CustomSocket, next: any): Promise<void> {
     console.log(`New connection: ${socket.id}`);
+
+    // Socket Session Persistent Implementation
+    const sessionId = socket.handshake.auth.sessionId as string | undefined;
+    const chatRoomId = socket.handshake.auth.chatRoomId as string | undefined;
+
+    if (sessionId && chatRoomId) {
+      const hasUserSession = await this.redisService.checkUserSession(sessionId);
+
+      if (hasUserSession) {
+        socket.sessionId = sessionId;
+        socket.chatRoomId = chatRoomId;
+        return next();
+      }
+    }
+
+    // // If no session Id, assign socket.id as sessionId
+    socket.sessionId = socket.id;
     next();
   }
 }
-
-// Dynamic generation of rooms when there's socket instances
-// rooms should be created if existing rooms are occupied with socket instances
-// each room should can only have 2 socket instances
-
-// Keep tracking all occupied rooms and idel rooms
