@@ -69,11 +69,12 @@ export class ChatRoomManager {
 
   public async leaveChatRoom(socket: CustomSocket, chatRoomId: string): Promise<void> {
     if (chatRoomId) {
-      await this.redisService.leaveChatRoomById(chatRoomId, socket.id);
+      const socketId = socket.sessionId ? socket.sessionId : socket.id;
+      await this.redisService.leaveChatRoomById(chatRoomId, socketId);
 
       socket.to(chatRoomId).emit('left-chat', 'Someone has left the chat');
       socket.leave(chatRoomId);
-      this.userSockets.delete(socket.id);
+      this.userSockets.delete(socketId);
     }
   }
 
