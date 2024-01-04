@@ -13,9 +13,8 @@ export interface ChatRoom {
 
 export interface ChatMessage {
   sender: string;
-  receiver: string;
   message: string;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface CustomSocket extends Socket {

@@ -15,7 +15,7 @@ export class ChatSocket implements SocketInterface {
   public handleConnection(socket: CustomSocket): void {
     socket.emit('session', { sessionId: socket.sessionId, chatRoomId: socket.chatRoomId });
 
-    this.chatService.initMessagingToChatRoom(socket, 'chat-message');
+    this.chatService.sendMessage(socket, 'send-message');
     this.chatService.leaveChatRoom(socket, 'leave-chat');
     this.chatService.startChat(socket, 'start-chat');
   }

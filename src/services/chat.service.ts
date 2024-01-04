@@ -22,7 +22,7 @@ export class ChatService {
     });
   }
 
-  public initMessagingToChatRoom(socket: CustomSocket, event: string) {
-    return this.chatRoomManager.onMessageToChatRoom(socket, event);
+  public sendMessage(socket: CustomSocket, event: string) {
+    return this.chatRoomManager.sendMessage(socket, event);
   }
 }

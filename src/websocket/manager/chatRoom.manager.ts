@@ -78,15 +78,9 @@ export class ChatRoomManager {
     }
   }
 
-  public onMessageToChatRoom(socket: CustomSocket, event: string): void {
-    socket.on(event, (messageObj: ChatMessage) => {
-      // 0 index is the roomId that is automatically assigned by Socket.io, roomId is its socket.id
-      // 1 index is the roomId that is explictly assigned
-      if (socket.rooms.size === 2) {
-        messageObj.timestamp = Date.now();
-
-        socket.to(Array.from(socket.rooms)[1]).emit(event, messageObj);
-      }
+  public sendMessage(socket: CustomSocket, event: string): void {
+    socket.on(event, (chatRoomId: string, chatMessage: ChatMessage) => {
+      socket.to(chatRoomId).emit('receive-message', chatMessage);
     });
   }
 }
