@@ -87,4 +87,21 @@ export class ChatRoomManager {
       await this.redisService.storeMessage(chatRoomId, chatMessage);
     });
   }
+
+  public retrieveChatMessages(socket: CustomSocket, event: string): void {
+    socket.on(event, async (chatRoomId: string) => {
+      // Retrieve chat messages from Redis
+      const chatMessages = await this.redisService.retrieveMessages(chatRoomId);
+
+      if (chatMessages) {
+        const socketUserId = socket.sessionId ? socket.sessionId : socket.id;
+        const originalSocket = this.userSockets.get(socketUserId);
+
+        if (originalSocket) {
+          // use original socket to broadcast event to chatRoom as the socket itself needs to be notified in order to get chat history
+          originalSocket.to(chatRoomId).emit('chat-history', chatMessages);
+        }
+      }
+    });
+  }
 }

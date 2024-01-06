@@ -18,6 +18,7 @@ export class ChatSocket implements SocketInterface {
     this.chatService.sendMessage(socket, 'send-message');
     this.chatService.leaveChatRoom(socket, 'leave-chat');
     this.chatService.startChat(socket, 'start-chat');
+    this.chatService.retrieveChatMessages(socket, 'retrieve-chat-messages');
   }
 
   public async middlewareImplementation(socket: CustomSocket, next: any): Promise<void> {

@@ -110,6 +110,21 @@ export class RedisService {
     }
   }
 
+  public async retrieveMessages(chatRoomId: string): Promise<ChatMessage[] | null | undefined> {
+    try {
+      if (chatRoomId) {
+        const key = `chatRoom:${chatRoomId}:messages`;
+        const result = await this.redisClient.lRange(key, 0, -1);
+        const chatMessages = result.map(element => JSON.parse(element)) as ChatMessage[];
+
+        return chatMessages;
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
   public async deleteChatRoomMessagesById(chatRoomId: string): Promise<void> {
     try {
       if (chatRoomId) {

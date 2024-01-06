@@ -25,4 +25,8 @@ export class ChatService {
   public sendMessage(socket: CustomSocket, event: string) {
     return this.chatRoomManager.sendMessage(socket, event);
   }
+
+  public retrieveChatMessages(socket: CustomSocket, event: string) {
+    return this.chatRoomManager.retrieveChatMessages(socket, event);
+  }
 }
