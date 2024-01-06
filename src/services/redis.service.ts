@@ -1,4 +1,4 @@
-import { ChatRoom } from '@/interfaces/sockets.interface';
+import { ChatMessage, ChatRoom } from '@/interfaces/sockets.interface';
 import { RedisClient } from '@/redisClient';
 import { RedisClientType } from 'redis';
 import { Service } from 'typedi';
@@ -93,6 +93,31 @@ export class RedisService {
     } catch (error) {
       console.error(error);
       return null;
+    }
+  }
+
+  public async storeMessage(chatRoomId: string, chatMessage: ChatMessage): Promise<void> {
+    try {
+      if (chatRoomId && chatMessage) {
+        const key = `chatRoom:${chatRoomId}:messages`;
+        await this.redisClient.rPush(key, JSON.stringify(chatMessage));
+
+        //TODO: might need to limit the number of messages
+        // TODO: if chatRoom is inactive for a long time, remove the chatRoom
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  public async deleteChatRoomMessagesById(chatRoomId: string): Promise<void> {
+    try {
+      if (chatRoomId) {
+        const key = `chatRoom:${chatRoomId}:messages`;
+        await this.redisClient.DEL(key);
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 }

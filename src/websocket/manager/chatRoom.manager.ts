@@ -71,6 +71,7 @@ export class ChatRoomManager {
     if (chatRoomId) {
       const socketId = socket.sessionId ? socket.sessionId : socket.id;
       await this.redisService.leaveChatRoomById(chatRoomId, socketId);
+      await this.redisService.deleteChatRoomMessagesById(chatRoomId);
 
       socket.to(chatRoomId).emit('left-chat', 'Someone has left the chat');
       socket.leave(chatRoomId);
@@ -79,8 +80,11 @@ export class ChatRoomManager {
   }
 
   public sendMessage(socket: CustomSocket, event: string): void {
-    socket.on(event, (chatRoomId: string, chatMessage: ChatMessage) => {
+    socket.on(event, async (chatRoomId: string, chatMessage: ChatMessage) => {
       socket.to(chatRoomId).emit('receive-message', chatMessage);
+
+      // store messages to Redis
+      await this.redisService.storeMessage(chatRoomId, chatMessage);
     });
   }
 }
