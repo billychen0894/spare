@@ -8,7 +8,7 @@ export interface SocketInterface {
 export interface ChatRoom {
   id: string;
   state: 'idle' | 'occupied';
-  participants: Set<string>;
+  participants: string[];
 }
 
 export interface ChatMessage {
