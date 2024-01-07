@@ -104,4 +104,17 @@ export class ChatRoomManager {
       }
     });
   }
+
+  public disconnect(socket: CustomSocket, event: string): void {
+    socket.on(event, async () => {
+      try {
+        const socketId = socket.sessionId ? socket.sessionId : socket.id;
+        const lastActiveTime = new Date().toISOString();
+
+        await this.redisService.setLastActiveTimeBySocketId(socketId, lastActiveTime);
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  }
 }

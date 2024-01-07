@@ -12,13 +12,33 @@ export class ChatSocket implements SocketInterface {
     this.chatService = Container.get(ChatService);
   }
 
-  public handleConnection(socket: CustomSocket): void {
+  public async handleConnection(socket: CustomSocket): Promise<void> {
     socket.emit('session', { sessionId: socket.sessionId, chatRoomId: socket.chatRoomId });
 
     this.chatService.sendMessage(socket, 'send-message');
     this.chatService.leaveChatRoom(socket, 'leave-chat');
     this.chatService.startChat(socket, 'start-chat');
     this.chatService.retrieveChatMessages(socket, 'retrieve-chat-messages');
+    this.chatService.disconnect(socket, 'disconnect');
+
+    if (!socket.recovered) {
+      try {
+        const socketId = socket.sessionId ? socket.sessionId : socket.id;
+        const chatRoomId = socket.chatRoomId ? socket.chatRoomId : '';
+
+        if (socketId && chatRoomId) {
+          // get last active time
+          const lastActiveTime = await this.redisService.getLastActiveTimeBySocketId(socketId);
+          const missedMessages = await this.redisService.getMissedMessages(chatRoomId, lastActiveTime);
+
+          if (missedMessages) {
+            socket.to(chatRoomId).emit('missed-messages', missedMessages);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
   }
 
   public async middlewareImplementation(socket: CustomSocket, next: any): Promise<void> {

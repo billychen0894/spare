@@ -22,11 +22,15 @@ export class ChatService {
     });
   }
 
-  public sendMessage(socket: CustomSocket, event: string) {
+  public sendMessage(socket: CustomSocket, event: string): void {
     return this.chatRoomManager.sendMessage(socket, event);
   }
 
-  public retrieveChatMessages(socket: CustomSocket, event: string) {
+  public retrieveChatMessages(socket: CustomSocket, event: string): void {
     return this.chatRoomManager.retrieveChatMessages(socket, event);
+  }
+
+  public disconnect(socket: CustomSocket, event: string): void {
+    return this.chatRoomManager.disconnect(socket, event);
   }
 }
