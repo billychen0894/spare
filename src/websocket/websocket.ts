@@ -11,6 +11,7 @@ export class Websocket extends Server {
         origin: SOCKET_ORIGIN,
         methods: ['POST', 'GET'],
       },
+      connectionStateRecovery: {},
     });
   }
 
