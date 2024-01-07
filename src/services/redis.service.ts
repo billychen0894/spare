@@ -159,6 +159,16 @@ export class RedisService {
     }
   }
 
+  public async deleteLastActiveTimeBySocketId(socketId: string): Promise<void> {
+    try {
+      if (socketId) {
+        await this.redisClient.DEL(`user:${socketId}:lastActiveTime`);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   public async getMissedMessages(chatRoomId: string, lastActiveTime: string | null | undefined): Promise<ChatMessage[] | null | undefined> {
     try {
       if (chatRoomId && lastActiveTime) {

@@ -72,6 +72,7 @@ export class ChatRoomManager {
       const socketId = socket.sessionId ? socket.sessionId : socket.id;
       await this.redisService.leaveChatRoomById(chatRoomId, socketId);
       await this.redisService.deleteChatRoomMessagesById(chatRoomId);
+      await this.redisService.deleteLastActiveTimeBySocketId(socketId);
 
       socket.to(chatRoomId).emit('left-chat', 'Someone has left the chat');
       socket.leave(chatRoomId);
