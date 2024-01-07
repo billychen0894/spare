@@ -135,4 +135,42 @@ export class RedisService {
       console.error(error);
     }
   }
+
+  public async setLastActiveTimeBySocketId(socketId: string, lastActiveTime: string): Promise<void> {
+    try {
+      if (socketId && lastActiveTime) {
+        await this.redisClient.set(`user:${socketId}:lastActiveTime`, lastActiveTime);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  public async getLastActiveTimeBySocketId(socketId: string): Promise<string | null | undefined> {
+    try {
+      if (socketId) {
+        const lastActiveTime = await this.redisClient.get(`user:${socketId}:lastActiveTime`);
+
+        return lastActiveTime ? lastActiveTime : null;
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  public async getMissedMessages(chatRoomId: string, lastActiveTime: string | null | undefined): Promise<ChatMessage[] | null | undefined> {
+    try {
+      if (chatRoomId && lastActiveTime) {
+        const key = `chatRoom:${chatRoomId}:messages`;
+        const result = await this.redisClient.lRange(key, 0, -1);
+        const chatMessages = result.map(element => JSON.parse(element)) as ChatMessage[];
+
+        return chatMessages.filter(chatMessages => new Date(chatMessages.timestamp) > new Date(lastActiveTime));
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
 }
