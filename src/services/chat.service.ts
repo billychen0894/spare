@@ -11,14 +11,14 @@ export class ChatService {
   }
 
   public startChat(socket: CustomSocket, event: string): void {
-    socket.on(event, userId => {
-      this.chatRoomManager.startChat(socket, userId);
+    socket.on(event, (userId, eventId, callback: any) => {
+      this.chatRoomManager.startChat(socket, userId, event, eventId, callback);
     });
   }
 
   public leaveChatRoom(socket: CustomSocket, event: string): void {
-    socket.on(event, (chatRoomId: string) => {
-      this.chatRoomManager.leaveChatRoom(socket, chatRoomId);
+    socket.on(event, (chatRoomId: string, callback: any) => {
+      this.chatRoomManager.leaveChatRoom(socket, chatRoomId, callback);
     });
   }
 

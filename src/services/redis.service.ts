@@ -99,11 +99,16 @@ export class RedisService {
   public async storeMessage(chatRoomId: string, chatMessage: ChatMessage): Promise<void> {
     try {
       if (chatRoomId && chatMessage) {
-        const key = `chatRoom:${chatRoomId}:messages`;
-        await this.redisClient.rPush(key, JSON.stringify(chatMessage));
+        const isMessageExisted = await this.redisClient.sIsMember('chatMessageIds', chatMessage?.id);
 
-        //TODO: might need to limit the number of messages
-        // TODO: if chatRoom is inactive for a long time, remove the chatRoom
+        if (!isMessageExisted) {
+          const key = `chatRoom:${chatRoomId}:messages`;
+          await this.redisClient.sAdd('chatMessageIds', chatMessage?.id);
+          await this.redisClient.rPush(key, JSON.stringify(chatMessage));
+
+          //TODO: might need to limit the number of messages
+          // TODO: if chatRoom is inactive for a long time, remove the chatRoom
+        }
       }
     } catch (error) {
       console.error(error);
@@ -181,6 +186,46 @@ export class RedisService {
     } catch (error) {
       console.error(error);
       return null;
+    }
+  }
+
+  public async isEventProcessed(eventId: string, eventName: string): Promise<boolean> {
+    try {
+      const isEventExisted = await this.redisClient.zScore('processedEvents', `${eventName}:${eventId}`);
+      this.removeOldEvents();
+
+      return isEventExisted !== null;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+
+  public async storeEvent(eventId: string, eventName: string): Promise<void> {
+    try {
+      const score = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+
+      await this.redisClient.zAdd('processedEvents', { score, value: `${eventName}:${eventId}` });
+      this.removeOldEvents();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  public async removeOldEvents(): Promise<void> {
+    const threshold = Math.floor(Date.now() / 1000) - 5 * 60; // 5 mins ago
+    await this.redisClient.zRemRangeByScore('processedEvents', '-inf', threshold);
+  }
+
+  public async processSocketEvent(event: string, eventId: string): Promise<boolean> {
+    const iseventprocessed = await this.isEventProcessed(eventId, event);
+
+    if (iseventprocessed) {
+      console.log(`${event}:${eventId} has already processed.`);
+      return true;
+    } else {
+      await this.storeEvent(eventId, event);
+      return false;
     }
   }
 }

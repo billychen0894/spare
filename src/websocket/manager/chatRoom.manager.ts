@@ -12,7 +12,11 @@ export class ChatRoomManager {
     this.userSockets = new Map<string, Socket>();
   }
 
-  public async startChat(socket: CustomSocket, userId: string): Promise<void> {
+  public async startChat(socket: CustomSocket, userId: string, event: string, eventId: string, callback: any): Promise<void> {
+    const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
+
+    if (isEventProcessed) return;
+
     if (socket.sessionId && !this.userSockets.has(socket.sessionId)) {
       this.userSockets.set(userId, socket);
     }
@@ -40,6 +44,7 @@ export class ChatRoomManager {
               .emit('chatRoom-connected', { id: socket.chatRoomId, state: chatRoom.state, participants: chatRoom.participants });
           }
 
+          callback();
           return;
         }
       }
@@ -65,9 +70,10 @@ export class ChatRoomManager {
         otherPairedSocket?.to(isPaired.id).emit('chatRoom-connected', isPaired);
       }
     }
+    callback();
   }
 
-  public async leaveChatRoom(socket: CustomSocket, chatRoomId: string): Promise<void> {
+  public async leaveChatRoom(socket: CustomSocket, chatRoomId: string, callback: any): Promise<void> {
     if (chatRoomId) {
       const socketId = socket.sessionId ? socket.sessionId : socket.id;
       await this.redisService.leaveChatRoomById(chatRoomId, socketId);
@@ -78,30 +84,51 @@ export class ChatRoomManager {
       socket.leave(chatRoomId);
       this.userSockets.delete(socketId);
     }
+
+    callback();
   }
 
   public sendMessage(socket: CustomSocket, event: string): void {
-    socket.on(event, async (chatRoomId: string, chatMessage: ChatMessage) => {
-      socket.to(chatRoomId).emit('receive-message', chatMessage);
+    socket.on(event, async (chatRoomId: string, chatMessage: ChatMessage, eventId, callback: any) => {
+      try {
+        const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-      // store messages to Redis
-      await this.redisService.storeMessage(chatRoomId, chatMessage);
+        if (isEventProcessed) return;
+
+        socket.to(chatRoomId).emit('receive-message', chatMessage);
+
+        // store messages to Redis
+        await this.redisService.storeMessage(chatRoomId, chatMessage);
+        callback();
+      } catch (error) {
+        console.error(error);
+      }
     });
   }
 
   public retrieveChatMessages(socket: CustomSocket, event: string): void {
-    socket.on(event, async (chatRoomId: string) => {
-      // Retrieve chat messages from Redis
-      const chatMessages = await this.redisService.retrieveMessages(chatRoomId);
+    socket.on(event, async (chatRoomId: string, eventId, callback: any) => {
+      try {
+        const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-      if (chatMessages) {
-        const socketUserId = socket.sessionId ? socket.sessionId : socket.id;
-        const originalSocket = this.userSockets.get(socketUserId);
+        if (isEventProcessed) return;
 
-        if (originalSocket) {
-          // use original socket to broadcast event to chatRoom as the socket itself needs to be notified in order to get chat history
-          originalSocket.to(chatRoomId).emit('chat-history', chatMessages);
+        // Retrieve chat messages from Redis
+        const chatMessages = await this.redisService.retrieveMessages(chatRoomId);
+
+        if (chatMessages) {
+          const socketUserId = socket.sessionId ? socket.sessionId : socket.id;
+          const originalSocket = this.userSockets.get(socketUserId);
+
+          if (originalSocket) {
+            // use original socket to broadcast event to chatRoom as the socket itself needs to be notified in order to get chat history
+            originalSocket.to(chatRoomId).emit('chat-history', chatMessages);
+          }
         }
+
+        callback();
+      } catch (error) {
+        console.error(error);
       }
     });
   }
