@@ -23,7 +23,7 @@ export class ChatRoomManager {
 
     // Check user session if it's already existed in Redis
     if (socket.sessionId && socket.chatRoomId) {
-      const hasUserSession = await this.redisService.checkUserSession(socket.sessionId);
+      const hasUserSession = await this.redisService.checkUserStatus(socket.sessionId);
       const chatRoom = await this.redisService.getChatRoomById(socket.chatRoomId);
 
       if (chatRoom) {
@@ -139,14 +139,18 @@ export class ChatRoomManager {
     socket.on(event, async () => {
       try {
         const socketId = socket.sessionId ? socket.sessionId : socket.id;
-        const chatRoomId = socket.chatRoomId ? socket.chatRoomId : '';
 
-        if (socketId && chatRoomId) {
-          const lastActiveTime = new Date().toISOString();
+        if (socketId) {
+          const userStatus = await this.redisService.checkUserStatus(socketId);
 
-          await this.redisService.setLastActiveTimeBySocketId(socketId, lastActiveTime);
-        } else {
-          await this.redisService.removeUserFromQueue(socketId);
+          if (userStatus === 'waiting') {
+            await this.redisService.removeUserFromQueue(socketId);
+          }
+
+          if (userStatus === 'in-chat') {
+            const lastActiveTime = new Date().toISOString();
+            await this.redisService.setLastActiveTimeBySocketId(socketId, lastActiveTime);
+          }
         }
       } catch (error) {
         console.error(error);
