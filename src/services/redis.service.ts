@@ -133,8 +133,12 @@ export class RedisService {
   public async deleteChatRoomMessagesById(chatRoomId: string): Promise<void> {
     try {
       if (chatRoomId) {
-        const key = `chatRoom:${chatRoomId}:messages`;
-        await this.redisClient.DEL(key);
+        const chatRoom = await this.getChatRoomById(chatRoomId);
+
+        if (!chatRoom) {
+          const key = `chatRoom:${chatRoomId}:messages`;
+          await this.redisClient.DEL(key);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -226,6 +230,21 @@ export class RedisService {
     } else {
       await this.storeEvent(eventId, event);
       return false;
+    }
+  }
+
+  public async removeUserMessageIds(socketId: string, chatRoomId: string): Promise<void> {
+    // Fetch all message IDs from the chat room
+    const key = `chatRoom:${chatRoomId}:messages`;
+    const messageStrings = await this.redisClient.lRange(key, 0, -1);
+    const messages = messageStrings.map(msg => JSON.parse(msg)) as ChatMessage[];
+
+    // Filter out messages sent by the user
+    const userMessageIds = messages.filter(msg => msg.sender === socketId).map(msg => msg.id);
+
+    // Remove each of the user's message IDs from the chatMessageIds set
+    for (const messageId of userMessageIds) {
+      await this.redisClient.sRem('chatMessageIds', messageId);
     }
   }
 }
