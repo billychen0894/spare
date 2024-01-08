@@ -17,6 +17,11 @@ export class RedisService {
     await this.redisClient.hSet('userStatus', userId, 'waiting');
   }
 
+  public async removeUserFromQueue(userId: string): Promise<void> {
+    await this.redisClient.lRem('userQueue', 0, userId);
+    await this.redisClient.hDel('userStatus', userId);
+  }
+
   public async pairUsers(): Promise<ChatRoom | null> {
     const user1 = await this.redisClient.rPop('userQueue');
     const user2 = await this.redisClient.rPop('userQueue');

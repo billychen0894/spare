@@ -139,9 +139,15 @@ export class ChatRoomManager {
     socket.on(event, async () => {
       try {
         const socketId = socket.sessionId ? socket.sessionId : socket.id;
-        const lastActiveTime = new Date().toISOString();
+        const chatRoomId = socket.chatRoomId ? socket.chatRoomId : '';
 
-        await this.redisService.setLastActiveTimeBySocketId(socketId, lastActiveTime);
+        if (socketId && chatRoomId) {
+          const lastActiveTime = new Date().toISOString();
+
+          await this.redisService.setLastActiveTimeBySocketId(socketId, lastActiveTime);
+        } else {
+          await this.redisService.removeUserFromQueue(socketId);
+        }
       } catch (error) {
         console.error(error);
       }
