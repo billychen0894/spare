@@ -49,7 +49,7 @@ export class ChatSocket implements SocketInterface {
     const chatRoomId = socket.handshake.auth.chatRoomId as string | undefined;
 
     if (sessionId && chatRoomId) {
-      const hasUserSession = await this.redisService.checkUserSession(sessionId);
+      const hasUserSession = await this.redisService.checkUserStatus(sessionId);
 
       if (hasUserSession) {
         socket.sessionId = sessionId;
