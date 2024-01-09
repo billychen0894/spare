@@ -111,7 +111,14 @@ export class RedisService {
           await this.redisClient.sAdd('chatMessageIds', chatMessage?.id);
           await this.redisClient.rPush(key, JSON.stringify(chatMessage));
 
-          //TODO: might need to limit the number of messages
+          // Limit number of messages
+          const limit = 10000;
+          const chatMessagesLength = await this.redisClient.lLen(key);
+
+          if (chatMessagesLength > limit) {
+            // Keeps most recent 10000 messages
+            await this.redisClient.lTrim(key, -limit, -1);
+          }
           // TODO: if chatRoom is inactive for a long time, remove the chatRoom
         }
       }
