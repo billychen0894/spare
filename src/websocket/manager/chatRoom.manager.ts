@@ -10,6 +10,14 @@ export class ChatRoomManager {
   constructor() {
     this.redisService = Container.get(RedisService);
     this.userSockets = new Map<string, Socket>();
+
+    // check inactivity of chatRooms in every one hour
+    setInterval(
+      () => {
+        this.checkInactiveChatRooms().catch(console.error);
+      },
+      60 * 60 * 1000,
+    );
   }
 
   public async startChat(socket: CustomSocket, userId: string, event: string, eventId: string, callback: any): Promise<void> {
@@ -156,5 +164,48 @@ export class ChatRoomManager {
         console.error(error);
       }
     });
+  }
+
+  public async checkInactiveChatRooms(): Promise<void> {
+    try {
+      const chatRooms = await this.redisService.getAllChatRooms();
+
+      if (chatRooms && chatRooms?.length > 0) {
+        for (const chatRoom of chatRooms) {
+          const thresholdInSeconds = 2 * 24 * 60 * 60; // two days;
+          const isInactive = await this.redisService.isInactive(`chatRoom:${chatRoom?.id}:lastActivity`, thresholdInSeconds);
+
+          if (isInactive) {
+            // Broadcast to chatroom about inactivity and the chat room is removed
+            const user1Socket = this.userSockets.get(chatRoom.participants[0]);
+            const user2Socket = this.userSockets.get(chatRoom.participants[1]);
+
+            if (user1Socket) {
+              user1Socket.to(chatRoom?.id).emit('inactive-chatRoom', chatRoom);
+
+              const socketId = user1Socket.sessionId ? user1Socket.sessionId : user1Socket.id;
+              const chatRoomId = chatRoom.id;
+              await this.redisService.removeUserMessageIds(socketId, chatRoomId);
+              await this.redisService.leaveChatRoomById(chatRoomId, socketId);
+              await this.redisService.deleteChatRoomMessagesById(chatRoomId);
+              await this.redisService.deleteLastActiveTimeBySocketId(socketId);
+            }
+
+            if (user2Socket) {
+              user2Socket.to(chatRoom?.id).emit('inactive-chatRoom', chatRoom);
+
+              const socketId = user2Socket.sessionId ? user2Socket.sessionId : user2Socket.id;
+              const chatRoomId = chatRoom.id;
+              await this.redisService.removeUserMessageIds(socketId, chatRoomId);
+              await this.redisService.leaveChatRoomById(chatRoomId, socketId);
+              await this.redisService.deleteChatRoomMessagesById(chatRoomId);
+              await this.redisService.deleteLastActiveTimeBySocketId(socketId);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 }

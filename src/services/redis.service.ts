@@ -43,14 +43,14 @@ export class RedisService {
   }
 
   public async createChatRoom(roomId: string, user1: string, user2: string): Promise<void> {
-    await this.redisClient.hSet('chatRooms', roomId, JSON.stringify({ state: 'occupied', participants: [user1, user2] }));
+    await this.redisClient.hSet('chatRooms', roomId, JSON.stringify({ id: roomId, state: 'occupied', participants: [user1, user2] }));
   }
 
   public async leaveChatRoomById(roomId: string, socketId: string): Promise<void> {
     const roomData = await this.redisClient.hGet('chatRooms', roomId);
 
     if (roomData) {
-      const roomObj = JSON.parse(roomData) as { state: 'occupied' | 'idle'; participants: string[] };
+      const roomObj = JSON.parse(roomData) as ChatRoom;
 
       const socketIdIndex = roomObj.participants.indexOf(socketId);
 
@@ -84,7 +84,7 @@ export class RedisService {
     }
   }
 
-  public async getChatRoomById(chatRoomId: string): Promise<{ state: 'occupied' | 'idle'; participants: Set<string> } | undefined | null> {
+  public async getChatRoomById(chatRoomId: string): Promise<ChatRoom | undefined | null> {
     try {
       if (chatRoomId) {
         const chatRoomObj = await this.redisClient.hGet('chatRooms', chatRoomId);
@@ -95,6 +95,19 @@ export class RedisService {
       } else {
         return null;
       }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  public async getAllChatRooms(): Promise<ChatRoom[] | undefined | null> {
+    try {
+      const chatRoomsObj = await this.redisClient.hVals('chatRooms');
+
+      const chatRooms = chatRoomsObj.map(chatRoom => JSON.parse(chatRoom)) as ChatRoom[];
+
+      return chatRooms;
     } catch (error) {
       console.error(error);
       return null;
@@ -119,7 +132,11 @@ export class RedisService {
             // Keeps most recent 10000 messages
             await this.redisClient.lTrim(key, -limit, -1);
           }
-          // TODO: if chatRoom is inactive for a long time, remove the chatRoom
+
+          // set last activity on user actions in chatRoom for tracking inactivity
+          const currentTime = new Date().toISOString();
+          await this.redisClient.set(`user:${chatMessage?.sender}:lastActivity`, currentTime);
+          await this.redisClient.set(`chatRoom:${chatRoomId}:lastActivity`, currentTime);
         }
       }
     } catch (error) {
@@ -258,5 +275,18 @@ export class RedisService {
     for (const messageId of userMessageIds) {
       await this.redisClient.sRem('chatMessageIds', messageId);
     }
+  }
+
+  public async isInactive(key: string, thresholdInSeconds: number): Promise<boolean> {
+    const lastActiveString = await this.redisClient.get(key);
+
+    if (lastActiveString) {
+      const lastActiveTime = new Date(lastActiveString).getTime();
+      const now = new Date().getTime();
+      const differenceInSeconds = (now - lastActiveTime) / 1000;
+      return differenceInSeconds > thresholdInSeconds;
+    }
+
+    return true;
   }
 }
