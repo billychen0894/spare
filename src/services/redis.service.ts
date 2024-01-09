@@ -177,7 +177,7 @@ export class RedisService {
   public async setLastActiveTimeBySocketId(socketId: string, lastActiveTime: string): Promise<void> {
     try {
       if (socketId && lastActiveTime) {
-        await this.redisClient.set(`user:${socketId}:lastActiveTime`, lastActiveTime);
+        await this.redisClient.set(`user:${socketId}:lastActivity`, lastActiveTime);
       }
     } catch (error) {
       console.error(error);
@@ -187,7 +187,7 @@ export class RedisService {
   public async getLastActiveTimeBySocketId(socketId: string): Promise<string | null | undefined> {
     try {
       if (socketId) {
-        const lastActiveTime = await this.redisClient.get(`user:${socketId}:lastActiveTime`);
+        const lastActiveTime = await this.redisClient.get(`user:${socketId}:lastActivity`);
 
         return lastActiveTime ? lastActiveTime : null;
       }
@@ -197,10 +197,10 @@ export class RedisService {
     }
   }
 
-  public async deleteLastActiveTimeBySocketId(socketId: string): Promise<void> {
+  public async deleteLastActiveTime(key: string, socketId: string): Promise<void> {
     try {
       if (socketId) {
-        await this.redisClient.DEL(`user:${socketId}:lastActiveTime`);
+        await this.redisClient.DEL(key);
       }
     } catch (error) {
       console.error(error);
