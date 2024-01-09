@@ -89,10 +89,13 @@ export class ChatRoomManager {
       socket.leave(chatRoomId);
       this.userSockets.delete(socketId);
 
+      const userKey = `user:${socketId}:lastActivity`;
+      const chatRoomKey = `chatRoom:${chatRoomId}:lastActivity`;
       await this.redisService.removeUserMessageIds(socketId, chatRoomId);
       await this.redisService.leaveChatRoomById(chatRoomId, socketId);
       await this.redisService.deleteChatRoomMessagesById(chatRoomId);
-      await this.redisService.deleteLastActiveTimeBySocketId(socketId);
+      await this.redisService.deleteLastActiveTime(userKey, socketId);
+      await this.redisService.deleteLastActiveTime(chatRoomKey, socketId);
     }
 
     callback();
@@ -185,10 +188,13 @@ export class ChatRoomManager {
 
               const socketId = user1Socket.sessionId ? user1Socket.sessionId : user1Socket.id;
               const chatRoomId = chatRoom.id;
+              const userKey = `user:${socketId}:lastActivity`;
+              const chatRoomKey = `chatRoom:${chatRoomId}:lastActivity`;
               await this.redisService.removeUserMessageIds(socketId, chatRoomId);
               await this.redisService.leaveChatRoomById(chatRoomId, socketId);
               await this.redisService.deleteChatRoomMessagesById(chatRoomId);
-              await this.redisService.deleteLastActiveTimeBySocketId(socketId);
+              await this.redisService.deleteLastActiveTime(userKey, socketId);
+              await this.redisService.deleteLastActiveTime(chatRoomKey, socketId);
             }
 
             if (user2Socket) {
@@ -196,10 +202,13 @@ export class ChatRoomManager {
 
               const socketId = user2Socket.sessionId ? user2Socket.sessionId : user2Socket.id;
               const chatRoomId = chatRoom.id;
+              const userKey = `user:${socketId}:lastActivity`;
+              const chatRoomKey = `chatRoom:${chatRoomId}:lastActivity`;
               await this.redisService.removeUserMessageIds(socketId, chatRoomId);
               await this.redisService.leaveChatRoomById(chatRoomId, socketId);
               await this.redisService.deleteChatRoomMessagesById(chatRoomId);
-              await this.redisService.deleteLastActiveTimeBySocketId(socketId);
+              await this.redisService.deleteLastActiveTime(userKey, socketId);
+              await this.redisService.deleteLastActiveTime(chatRoomKey, socketId);
             }
           }
         }
