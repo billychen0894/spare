@@ -33,6 +33,10 @@ export class RedisService {
       await this.redisClient.hSet('userStatus', user1, 'in-chat');
       await this.redisClient.hSet('userStatus', user2, 'in-chat');
 
+      // Set initial chat room activity at creation
+      const currentTime = new Date().toISOString();
+      await this.redisClient.set(`chatRoom:${chatRoomId}:lastActivity`, currentTime);
+
       return { id: chatRoomId, state: 'occupied', participants: [user1, user2] };
     } else {
       if (user1) await this.redisClient.lPush('userQueue', user1);
