@@ -20,19 +20,29 @@ export class ChatSocket implements SocketInterface {
     this.chatService.startChat(socket, 'start-chat');
     this.chatService.retrieveChatMessages(socket, 'retrieve-chat-messages');
     this.chatService.disconnect(socket, 'disconnect');
+    this.chatService.checkChatRoomSession(socket, 'check-chatRoom-session');
+
+    // socket.onAny((eventName, ...args) => {
+    //   console.log(eventName); // 'hello'
+    //   console.log(args); // [ 1, '2', { 3: '4', 5: ArrayBuffer (1) [ 6 ] } ]
+    // });
 
     if (!socket.recovered) {
       try {
-        const socketId = socket.sessionId ? socket.sessionId : socket.id;
-        const chatRoomId = socket.chatRoomId ? socket.chatRoomId : '';
+        // const socketId = socket.sessionId ? socket.sessionId : socket.id;
+        // const chatRoomId = socket.chatRoomId ? socket.chatRoomId : '';
 
-        if (socketId && chatRoomId) {
-          // get last active time
-          const lastActiveTime = await this.redisService.getLastActiveTimeBySocketId(socketId);
-          const missedMessages = await this.redisService.getMissedMessages(chatRoomId, lastActiveTime);
+        if (socket?.sessionId && socket?.chatRoomId) {
+          const chatRoom = await this.redisService.getChatRoomById(socket?.chatRoomId);
+          if (chatRoom) {
+            // get last active time
+            const lastActiveTime = await this.redisService.getLastActiveTimeBySocketId(socket?.sessionId);
+            const missedMessages = await this.redisService.getMissedMessages(socket?.chatRoomId, lastActiveTime);
+            socket.emit('session', { sessionId: socket.sessionId, chatRoomId: socket.chatRoomId });
 
-          if (missedMessages) {
-            socket.to(chatRoomId).emit('missed-messages', missedMessages);
+            if (missedMessages) {
+              socket.to(socket?.chatRoomId).emit('missed-messages', missedMessages);
+            }
           }
         }
       } catch (error) {

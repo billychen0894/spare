@@ -17,6 +17,7 @@ export class ChatRoomManager {
         this.checkInactiveChatRooms().catch(console.error);
       },
       60 * 60 * 1000,
+      // 30 * 1000,
     );
   }
 
@@ -31,14 +32,14 @@ export class ChatRoomManager {
 
     // Check user session if it's already existed in Redis
     if (socket.sessionId && socket.chatRoomId) {
-      const hasUserSession = await this.redisService.checkUserStatus(socket.sessionId);
+      const userStatus = await this.redisService.checkUserStatus(socket.sessionId);
       const chatRoom = await this.redisService.getChatRoomById(socket.chatRoomId);
 
       if (chatRoom) {
         const participants = Array.from(chatRoom.participants);
         const isUserInRoom = participants.includes(socket.sessionId);
 
-        if (hasUserSession && isUserInRoom) {
+        if (userStatus === 'in-chat' && isUserInRoom) {
           const otherPairedUserId = participants.find(id => id !== socket.sessionId);
 
           socket.join(socket.chatRoomId);
@@ -49,7 +50,7 @@ export class ChatRoomManager {
 
             otherPairedUserSocket
               ?.to(socket.chatRoomId)
-              .emit('chatRoom-connected', { id: socket.chatRoomId, state: chatRoom.state, participants: chatRoom.participants });
+              .emit('chatRoom-created', { id: socket.chatRoomId, state: chatRoom.state, participants: chatRoom.participants });
           }
 
           callback();
@@ -74,8 +75,8 @@ export class ChatRoomManager {
         otherPairedSocket?.join(isPaired.id);
         otherPairedSocket?.emit('session', { sessionId: otherPairedSocket.sessionId, chatRoomId: isPaired.id });
 
-        socket.to(isPaired.id).emit('chatRoom-connected', isPaired);
-        otherPairedSocket?.to(isPaired.id).emit('chatRoom-connected', isPaired);
+        socket.to(isPaired.id).emit('chatRoom-created', isPaired);
+        otherPairedSocket?.to(isPaired.id).emit('chatRoom-created', isPaired);
       }
     }
     callback();
@@ -85,7 +86,7 @@ export class ChatRoomManager {
     if (chatRoomId) {
       const socketId = socket.sessionId ? socket.sessionId : socket.id;
 
-      socket.to(chatRoomId).emit('left-chat', 'Someone has left the chat');
+      socket.to(chatRoomId).emit('left-chat', socketId);
       socket.leave(chatRoomId);
       this.userSockets.delete(socketId);
 
@@ -133,10 +134,8 @@ export class ChatRoomManager {
           const socketUserId = socket.sessionId ? socket.sessionId : socket.id;
           const originalSocket = this.userSockets.get(socketUserId);
 
-          if (originalSocket) {
-            // use original socket to broadcast event to chatRoom as the socket itself needs to be notified in order to get chat history
-            originalSocket.to(chatRoomId).emit('chat-history', chatMessages);
-          }
+          // use original socket to broadcast event to chatRoom as the socket itself needs to be notified in order to get chat history
+          originalSocket?.to(chatRoomId).emit('chat-history', chatMessages);
         }
 
         callback();
@@ -176,6 +175,7 @@ export class ChatRoomManager {
       if (chatRooms && chatRooms?.length > 0) {
         for (const chatRoom of chatRooms) {
           const thresholdInSeconds = 2 * 24 * 60 * 60; // two days;
+          // const thresholdInSeconds = 30; // 30 sec;
           const isInactive = await this.redisService.isInactive(`chatRoom:${chatRoom?.id}:lastActivity`, thresholdInSeconds);
 
           if (isInactive) {
@@ -216,5 +216,27 @@ export class ChatRoomManager {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  public checkChatRoomSession(socket: CustomSocket, event: string): void {
+    socket.on(event, async (chatRoomId: string, sessionId: string, eventId: string, callback: any) => {
+      try {
+        const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
+
+        if (isEventProcessed) return;
+
+        const chatRoom = await this.redisService.getChatRoomById(chatRoomId);
+
+        if (chatRoom && chatRoom.participants.includes(sessionId)) {
+          socket.emit('receive-chatRoom-session', chatRoom);
+          callback();
+        } else {
+          socket.emit('receive-chatRoom-session', null);
+          callback();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
   }
 }
