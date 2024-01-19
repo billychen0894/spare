@@ -4,8 +4,6 @@ import { createAdapter } from '@socket.io/cluster-adapter';
 import { Server, Socket } from 'socket.io';
 
 export class Websocket extends Server {
-  private static io: Websocket;
-
   constructor(httpServer: any) {
     super(httpServer, {
       cors: {
@@ -18,17 +16,9 @@ export class Websocket extends Server {
     });
   }
 
-  public static getWebsocket(httpServer?: any): Websocket {
-    if (!Websocket.io) {
-      Websocket.io = new Websocket(httpServer);
-    }
-
-    return Websocket.io;
-  }
-
   public initializeHandlers(socketHandlers: Array<{ path: string; handler: SocketInterface }>) {
     socketHandlers.forEach(element => {
-      const namespace = Websocket.io.of(element.path, (socket: Socket) => {
+      const namespace = this.of(element.path, (socket: Socket) => {
         element.handler.handleConnection.bind(element.handler)(socket);
       });
 
