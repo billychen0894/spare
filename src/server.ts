@@ -1,4 +1,5 @@
 import { App } from '@/app';
+import { PORT } from '@/config';
 import { ChatRoute } from '@/routes/chats.route';
 import { ChatSocket } from '@/websocket/chat.socket';
 import { Websocket } from '@/websocket/websocket';
@@ -15,7 +16,7 @@ if (cluster.isPrimary) {
   for (let i = 0; i < numCPUs; i++) {
     // Each worker is listening on its own port, so sticky session is not required
     cluster.fork({
-      PORT: 4040 + i,
+      PORT: +PORT! + i,
     });
   }
 
