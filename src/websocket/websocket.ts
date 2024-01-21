@@ -4,6 +4,8 @@ import { createAdapter } from '@socket.io/cluster-adapter';
 import { Server, Socket } from 'socket.io';
 
 export class Websocket extends Server {
+  public static io: Websocket;
+
   constructor(httpServer: any) {
     super(httpServer, {
       cors: {
@@ -14,6 +16,8 @@ export class Websocket extends Server {
       // set up the adapter on each worker thread
       adapter: createAdapter(),
     });
+
+    Websocket.io = this;
   }
 
   public initializeHandlers(socketHandlers: Array<{ path: string; handler: SocketInterface }>) {
