@@ -2,16 +2,27 @@ import { HTTPException } from '@/exceptions/HttpException';
 import { ChatRoom, CustomSocket } from '@/interfaces/sockets.interface';
 import { RedisService } from '@/services/redis.service';
 import { ChatRoomManager } from '@/websocket/manager/chatRoom.manager';
+import { Websocket } from '@/websocket/websocket';
 import Container, { Service } from 'typedi';
 
 @Service()
 export class ChatService {
-  private chatRoomManager: ChatRoomManager;
+  private chatRoomManager: ChatRoomManager | null = null;
   private redisService: RedisService;
 
   constructor() {
-    this.chatRoomManager = new ChatRoomManager();
     this.redisService = Container.get(RedisService);
+  }
+
+  private getChatRoomManager(): ChatRoomManager {
+    if (!this.chatRoomManager) {
+      const io = Websocket.io;
+      if (!io) {
+        throw new Error('Socket.io instance is not initialized yet');
+      }
+      this.chatRoomManager = new ChatRoomManager(io);
+    }
+    return this.chatRoomManager;
   }
 
   public async findChatRoomById(chatRoomId: string): Promise<ChatRoom> {
@@ -23,29 +34,29 @@ export class ChatService {
 
   public startChat(socket: CustomSocket, event: string): void {
     socket.on(event, (userId, eventId, callback: any) => {
-      this.chatRoomManager.startChat(socket, userId, event, eventId, callback);
+      this.getChatRoomManager().startChat(socket, userId, event, eventId, callback);
     });
   }
 
   public leaveChatRoom(socket: CustomSocket, event: string): void {
     socket.on(event, (chatRoomId: string, callback: any) => {
-      this.chatRoomManager.leaveChatRoom(socket, chatRoomId, callback);
+      this.getChatRoomManager().leaveChatRoom(socket, chatRoomId, callback);
     });
   }
 
   public sendMessage(socket: CustomSocket, event: string): void {
-    return this.chatRoomManager.sendMessage(socket, event);
+    return this.getChatRoomManager().sendMessage(socket, event);
   }
 
   public retrieveChatMessages(socket: CustomSocket, event: string): void {
-    return this.chatRoomManager.retrieveChatMessages(socket, event);
+    return this.getChatRoomManager().retrieveChatMessages(socket, event);
   }
 
   public disconnect(socket: CustomSocket, event: string): void {
-    return this.chatRoomManager.disconnect(socket, event);
+    return this.getChatRoomManager().disconnect(socket, event);
   }
 
   public checkChatRoomSession(socket: CustomSocket, event: string): void {
-    return this.chatRoomManager.checkChatRoomSession(socket, event);
+    return this.getChatRoomManager().checkChatRoomSession(socket, event);
   }
 }
