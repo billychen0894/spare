@@ -12,6 +12,19 @@ export class RedisService {
     this.redisClient = RedisClient.getInstance().getClient();
   }
 
+  public async storeUserSessionId(sessionId: string): Promise<void> {
+    await this.redisClient.set(`user:${sessionId}:sessionId`, sessionId);
+  }
+
+  public async getUserSessionId(sessionId: string): Promise<string | null | undefined> {
+    try {
+      return await this.redisClient.get(`user:${sessionId}:sessionId`);
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
   public async addUserToQueue(userId: string): Promise<void> {
     await this.redisClient.lPush('userQueue', userId);
     await this.redisClient.hSet('userStatus', userId, 'waiting');
@@ -292,5 +305,23 @@ export class RedisService {
     }
 
     return true;
+  }
+
+  public async clearUser(sessionId: string, chatRoomId: string): Promise<void> {
+    try {
+      if (sessionId && chatRoomId) {
+        const userKey = `user:${sessionId}:lastActivity`;
+        const chatRoomKey = `chatRoom:${chatRoomId}:lastActivity`;
+        const userSessionKey = `user:${sessionId}:sessionId`;
+        await this.removeUserMessageIds(sessionId, chatRoomId);
+        await this.leaveChatRoomById(chatRoomId, sessionId);
+        await this.deleteChatRoomMessagesById(chatRoomId);
+        await this.deleteLastActiveTime(userKey, sessionId);
+        await this.deleteLastActiveTime(chatRoomKey, sessionId);
+        await this.redisClient.del(userSessionKey);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
