@@ -5,7 +5,9 @@ export class RedisClient {
   private client: RedisClientType;
 
   private constructor() {
-    this.client = createClient();
+    this.client = createClient({
+      url: 'redis://redis:6379',
+    });
     this.client.on('connection', () => {
       console.log('🚀 Connected to Redis');
     });
