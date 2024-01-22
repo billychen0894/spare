@@ -9,7 +9,7 @@ export class RedisService {
   private redisClient: RedisClientType;
 
   constructor() {
-    this.redisClient = RedisClient.getInstance().getClient();
+    this.redisClient = RedisClient.getInstance().getPubClient();
   }
 
   public async storeUserSessionId(sessionId: string): Promise<void> {
@@ -22,6 +22,14 @@ export class RedisService {
     } catch (error) {
       console.error(error);
       return null;
+    }
+  }
+
+  public async removeUserSessionId(sessionId: string): Promise<void> {
+    try {
+      await this.redisClient.del(`user:${sessionId}:sessionId`);
+    } catch (error) {
+      console.error(error);
     }
   }
 
