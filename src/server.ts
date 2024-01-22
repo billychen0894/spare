@@ -1,39 +1,25 @@
 import { App } from '@/app';
-import { PORT } from '@/config';
 import { ChatRoute } from '@/routes/chats.route';
 import { ChatSocket } from '@/websocket/chat.socket';
 import { Websocket } from '@/websocket/websocket';
-import { setupPrimary } from '@socket.io/cluster-adapter';
+import { createAdapter } from '@socket.io/redis-adapter';
 import { ValidateEnv } from '@utils/validateEnv';
-import cluster from 'cluster';
-import { availableParallelism } from 'os';
+import { RedisClient } from './redisClient';
 
 ValidateEnv();
 
-if (cluster.isPrimary) {
-  const numCPUs = availableParallelism();
-  // create one worker per available core
-  for (let i = 0; i < numCPUs; i++) {
-    // Each worker is listening on its own port, so sticky session is not required
-    cluster.fork({
-      PORT: +PORT! + i,
-    });
-  }
+const app = new App([new ChatRoute()]);
+const httpServer = app.getHttpServer();
+const io = Websocket.getWebsocket(httpServer);
+const redisClient = RedisClient.getInstance();
 
-  // set up the adapter on the primary thread
-  setupPrimary();
-} else {
-  const app = new App([new ChatRoute()]);
+io.adapter(createAdapter(redisClient.getPubClient(), redisClient.getSubClient()));
 
-  const httpServer = app.getHttpServer();
-  const io = new Websocket(httpServer);
+io.initializeHandlers([
+  {
+    path: '/chat',
+    handler: new ChatSocket(),
+  },
+]);
 
-  io.initializeHandlers([
-    {
-      path: '/chat',
-      handler: new ChatSocket(),
-    },
-  ]);
-
-  app.listen();
-}
+app.listen();

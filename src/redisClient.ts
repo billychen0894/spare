@@ -2,21 +2,20 @@ import { RedisClientType, createClient } from 'redis';
 
 export class RedisClient {
   private static instance: RedisClient;
-  private client: RedisClientType;
+  private pubClient: RedisClientType;
+  private subClient: RedisClientType;
 
   private constructor() {
-    this.client = createClient({
+    this.pubClient = createClient({
       url: 'redis://redis:6379',
     });
-    this.client.on('connection', () => {
-      console.log('🚀 Connected to Redis');
-    });
+    this.subClient = this.pubClient.duplicate();
 
-    this.client.on('error', err => {
-      console.error('Redis Error: ', err);
-    });
-
-    this.client.connect();
+    this.pubClient.connect();
+    this.subClient.connect();
+    this.pubClient.on('error', err => console.error('Redis Client Error', err));
+    this.pubClient.on('connect', () => console.log('Redis Client Connected'));
+    this.pubClient.on('ready', () => console.log('Redis Client Ready'));
   }
 
   public static getInstance(): RedisClient {
@@ -27,7 +26,10 @@ export class RedisClient {
     return RedisClient.instance;
   }
 
-  public getClient(): RedisClientType {
-    return this.client;
+  public getPubClient(): RedisClientType {
+    return this.pubClient;
+  }
+  public getSubClient(): RedisClientType {
+    return this.subClient;
   }
 }

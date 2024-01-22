@@ -1,6 +1,5 @@
 import { SOCKET_ORIGIN } from '@/config';
 import { SocketInterface } from '@/interfaces/sockets.interface';
-import { createAdapter } from '@socket.io/cluster-adapter';
 import { Server, Socket } from 'socket.io';
 
 export class Websocket extends Server {
@@ -11,13 +10,20 @@ export class Websocket extends Server {
       cors: {
         origin: SOCKET_ORIGIN,
         methods: ['POST', 'GET'],
+        credentials: true,
       },
       connectionStateRecovery: {},
-      // set up the adapter on each worker thread
-      adapter: createAdapter(),
     });
 
-    Websocket.io = this;
+    // Websocket.io = this;
+  }
+
+  public static getWebsocket(httpServer: any) {
+    if (!Websocket.io) {
+      Websocket.io = new Websocket(httpServer);
+    }
+
+    return Websocket.io;
   }
 
   public initializeHandlers(socketHandlers: Array<{ path: string; handler: SocketInterface }>) {
