@@ -45,7 +45,7 @@
   },
   "repository": "https://github.com/billychen0894/spareTalk-server.git",
   "dependencies": {
-    "@socket.io/cluster-adapter": "^0.2.2",
+    "@socket.io/redis-adapter": "^8.2.1",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
