@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import morgan from 'morgan';
 import { CREDENTIALS, LOG_FORMAT, NODE_ENV, ORIGIN, PORT } from '@config';
 import { Routes } from '@interfaces/routes.interface';
 import { ErrorMiddleware } from '@middlewares/error.middleware';
@@ -10,7 +11,6 @@ import express from 'express';
 import helmet from 'helmet';
 import hpp from 'hpp';
 import { IncomingMessage, Server, ServerResponse, createServer } from 'http';
-import morgan from 'morgan';
 
 export class App {
   public app: express.Application;
@@ -55,6 +55,9 @@ export class App {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
+    this.app.head('/health', function (req, res) {
+      res.sendStatus(200);
+    });
   }
   private initializeRoutes(routes: Routes[]) {
     routes.forEach(route => {
