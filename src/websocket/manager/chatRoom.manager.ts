@@ -21,67 +21,71 @@ export class ChatRoomManager {
     );
   }
 
-  public async startChat(socket: CustomSocket, userId: string, event: string, eventId: string, callback: any): Promise<void> {
-    const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
+  public startChat(socket: CustomSocket, event: string): void {
+    socket.on(event, async (userId, eventId, callback: any) => {
+      const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-    if (isEventProcessed) return;
+      if (isEventProcessed) return;
 
-    // Check user session if it's already existed in Redis
-    if (socket.sessionId && socket.chatRoomId) {
-      const userStatus = await this.redisService.checkUserStatus(socket.sessionId);
-      const chatRoom = await this.redisService.getChatRoomById(socket.chatRoomId);
+      // Check user session if it's already existed in Redis
+      if (socket.sessionId && socket.chatRoomId) {
+        const userStatus = await this.redisService.checkUserStatus(socket.sessionId);
+        const chatRoom = await this.redisService.getChatRoomById(socket.chatRoomId);
 
-      if (chatRoom) {
-        const participants = Array.from(chatRoom.participants);
-        const isUserInRoom = participants.includes(socket.sessionId);
+        if (chatRoom) {
+          const participants = Array.from(chatRoom.participants);
+          const isUserInRoom = participants.includes(socket.sessionId);
 
-        if (userStatus === 'in-chat' && isUserInRoom) {
-          socket.join(socket.chatRoomId);
-          socket.emit('chatRoom-created', { id: socket.chatRoomId, state: chatRoom.state, participants: chatRoom.participants });
+          if (userStatus === 'in-chat' && isUserInRoom) {
+            socket.join(socket.chatRoomId);
+            socket.emit('chatRoom-created', { id: socket.chatRoomId, state: chatRoom.state, participants: chatRoom.participants });
 
-          callback();
-          return;
+            callback();
+            return;
+          }
         }
       }
-    }
 
-    await this.redisService.addUserToQueue(userId);
-    const chatRoom = await this.redisService.pairUsers();
+      await this.redisService.addUserToQueue(userId);
+      const chatRoom = await this.redisService.pairUsers();
 
-    if (chatRoom) {
-      const otherPairedUserId = Array.from(chatRoom.participants).find(id => id !== userId);
+      if (chatRoom) {
+        const otherPairedUserId = Array.from(chatRoom.participants).find(id => id !== userId);
 
-      // If it's paired, update chatRoomId in session obj
-      socket.emit('session', { sessionId: socket.sessionId, chatRoomId: chatRoom.id });
-      socket.join(chatRoom.id);
-      socket.emit('chatRoom-created', chatRoom);
+        // If it's paired, update chatRoomId in session obj
+        socket.emit('session', { sessionId: socket.sessionId, chatRoomId: chatRoom.id });
+        socket.join(chatRoom.id);
+        socket.emit('chatRoom-created', chatRoom);
 
-      if (otherPairedUserId) {
-        this.io?.of('/chat').in(otherPairedUserId).socketsJoin(chatRoom.id);
-        this.io?.of('/chat').to(otherPairedUserId).emit('session', { sessionId: otherPairedUserId, chatRoomId: chatRoom.id });
-        this.io?.of('/chat').to(otherPairedUserId).emit('chatRoom-created', chatRoom);
+        if (otherPairedUserId) {
+          this.io?.of('/chat').in(otherPairedUserId).socketsJoin(chatRoom.id);
+          this.io?.of('/chat').to(otherPairedUserId).emit('session', { sessionId: otherPairedUserId, chatRoomId: chatRoom.id });
+          this.io?.of('/chat').to(otherPairedUserId).emit('chatRoom-created', chatRoom);
+        }
       }
-    }
-    callback();
+      callback({
+        status: 'ok',
+      });
+    });
   }
 
   // TODO: On disconnect the previous socket events are recovered with new socket, something to do with acknowledgement
-  public async leaveChatRoom(event: string, socket: CustomSocket, chatRoomId: string, eventId: string, callback: any): Promise<void> {
-    const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
+  public leaveChatRoom(socket: CustomSocket, event: string): void {
+    socket.on(event, async (chatRoomId: string, eventId: string, callback: any) => {
+      const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-    if (isEventProcessed) return;
+      if (isEventProcessed) return;
 
-    if (chatRoomId) {
-      const socketId = socket.sessionId ? socket.sessionId : socket.id;
+      if (chatRoomId && socket.sessionId) {
+        socket.to(chatRoomId).emit('left-chat', socket.sessionId);
+        socket.leave(chatRoomId);
 
-      socket.to(chatRoomId).emit('left-chat', socketId);
-      socket.leave(chatRoomId);
-
-      this.redisService.clearUser(socketId, chatRoomId);
-    } else {
-      this.redisService.removeUserSessionId(socket.sessionId || socket.id);
-    }
-    callback();
+        await this.redisService.clearUser(socket.sessionId, chatRoomId);
+      }
+      callback({
+        status: 'ok',
+      });
+    });
   }
 
   public sendMessage(socket: CustomSocket, event: string): void {
@@ -95,7 +99,9 @@ export class ChatRoomManager {
 
         // store messages to Redis
         await this.redisService.storeMessage(chatRoomId, chatMessage);
-        callback();
+        callback({
+          status: 'ok',
+        });
       } catch (error) {
         console.error(error);
       }
@@ -116,7 +122,9 @@ export class ChatRoomManager {
           this.io?.of('/chat').to(chatRoomId).emit('chat-history', chatMessages);
         }
 
-        callback();
+        callback({
+          status: 'ok',
+        });
       } catch (error) {
         console.error(error);
       }
@@ -126,18 +134,17 @@ export class ChatRoomManager {
   public disconnect(socket: CustomSocket, event: string): void {
     socket.on(event, async () => {
       try {
-        const socketId = socket.sessionId ? socket.sessionId : socket.id;
-
-        if (socketId) {
-          const userStatus = await this.redisService.checkUserStatus(socketId);
+        if (socket.sessionId) {
+          const userStatus = await this.redisService.checkUserStatus(socket.sessionId);
 
           if (userStatus === 'waiting') {
-            await this.redisService.removeUserFromQueue(socketId);
+            await this.redisService.removeUserFromQueue(socket.sessionId);
+            await this.redisService.removeUserSessionId(socket.sessionId);
           }
 
           if (userStatus === 'in-chat') {
             const lastActiveTime = new Date().toISOString();
-            await this.redisService.setLastActiveTimeBySocketId(socketId, lastActiveTime);
+            await this.redisService.setLastActiveTimeBySocketId(socket.sessionId, lastActiveTime);
           }
         }
       } catch (error) {
@@ -161,7 +168,7 @@ export class ChatRoomManager {
               const userSessionId = await this.redisService.getUserSessionId(participant);
 
               if (userSessionId) {
-                this.redisService.clearUser(userSessionId, chatRoom?.id);
+                await this.redisService.clearUser(userSessionId, chatRoom?.id);
               }
             });
 
@@ -188,12 +195,13 @@ export class ChatRoomManager {
 
         if (chatRoom && chatRoom.participants.includes(sessionId)) {
           socket.emit('receive-chatRoom-session', chatRoom);
-          callback();
         } else {
           socket.emit('receive-chatRoom-session', null);
-          this.redisService.removeUserSessionId(socket.id);
-          callback();
+          await this.redisService.removeUserSessionId(sessionId);
         }
+        callback({
+          status: 'ok',
+        });
       } catch (error) {
         console.error(error);
       }

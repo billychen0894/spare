@@ -33,15 +33,11 @@ export class ChatService {
   }
 
   public startChat(socket: CustomSocket, event: string): void {
-    socket.on(event, (userId, eventId, callback: any) => {
-      this.getChatRoomManager().startChat(socket, userId, event, eventId, callback);
-    });
+    return this.getChatRoomManager().startChat(socket, event);
   }
 
   public leaveChatRoom(socket: CustomSocket, event: string): void {
-    socket.on(event, (chatRoomId: string, callback: any) => {
-      this.getChatRoomManager().leaveChatRoom(socket, chatRoomId, callback);
-    });
+    return this.getChatRoomManager().leaveChatRoom(socket, event);
   }
 
   public sendMessage(socket: CustomSocket, event: string): void {
