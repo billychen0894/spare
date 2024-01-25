@@ -29,12 +29,9 @@ export class ChatSocket implements SocketInterface {
 
     if (!socket.recovered) {
       try {
-        // const socketId = socket.sessionId ? socket.sessionId : socket.id;
-        // const chatRoomId = socket.chatRoomId ? socket.chatRoomId : '';
-
         if (socket?.sessionId && socket?.chatRoomId) {
           const chatRoom = await this.redisService.getChatRoomById(socket?.chatRoomId);
-          if (chatRoom) {
+          if (chatRoom && chatRoom.state === 'occupied') {
             // get last active time
             const lastActiveTime = await this.redisService.getLastActiveTimeBySocketId(socket?.sessionId);
             const missedMessages = await this.redisService.getMissedMessages(socket?.chatRoomId, lastActiveTime);
@@ -64,12 +61,14 @@ export class ChatSocket implements SocketInterface {
       if (hasUserSession) {
         socket.sessionId = sessionId;
         socket.chatRoomId = chatRoomId;
+        await this.redisService.storeUserSessionId(sessionId);
         return next();
       }
     }
 
     // // If no session Id, assign socket.id as sessionId
     socket.sessionId = socket.id;
+    await this.redisService.storeUserSessionId(socket.id);
     next();
   }
 }
