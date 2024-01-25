@@ -50,7 +50,7 @@ export class RedisService {
     if (user1 && user2) {
       const chatRoomId = uuidv4();
 
-      this.createChatRoom(chatRoomId, user1, user2);
+      await this.createChatRoom(chatRoomId, user1, user2);
       await this.redisClient.hSet('userStatus', user1, 'in-chat');
       await this.redisClient.hSet('userStatus', user2, 'in-chat');
 
@@ -187,12 +187,8 @@ export class RedisService {
   public async deleteChatRoomMessagesById(chatRoomId: string): Promise<void> {
     try {
       if (chatRoomId) {
-        const chatRoom = await this.getChatRoomById(chatRoomId);
-
-        if (!chatRoom) {
-          const key = `chatRoom:${chatRoomId}:messages`;
-          await this.redisClient.DEL(key);
-        }
+        const key = `chatRoom:${chatRoomId}:messages`;
+        await this.redisClient.DEL(key);
       }
     } catch (error) {
       console.error(error);
@@ -316,20 +312,25 @@ export class RedisService {
   }
 
   public async clearUser(sessionId: string, chatRoomId: string): Promise<void> {
+    if (!sessionId || !chatRoomId) {
+      return;
+    }
+
     try {
-      if (sessionId && chatRoomId) {
-        const userKey = `user:${sessionId}:lastActivity`;
-        const chatRoomKey = `chatRoom:${chatRoomId}:lastActivity`;
-        const userSessionKey = `user:${sessionId}:sessionId`;
-        await this.removeUserMessageIds(sessionId, chatRoomId);
-        await this.leaveChatRoomById(chatRoomId, sessionId);
-        await this.deleteChatRoomMessagesById(chatRoomId);
-        await this.deleteLastActiveTime(userKey, sessionId);
-        await this.deleteLastActiveTime(chatRoomKey, sessionId);
-        await this.redisClient.del(userSessionKey);
-      }
+      const userKey = `user:${sessionId}:lastActivity`;
+      const chatRoomKey = `chatRoom:${chatRoomId}:lastActivity`;
+      const userSessionKey = `user:${sessionId}:sessionId`;
+
+      await Promise.all([
+        this.removeUserMessageIds(sessionId, chatRoomId),
+        this.leaveChatRoomById(chatRoomId, sessionId),
+        this.deleteChatRoomMessagesById(chatRoomId),
+        this.redisClient.del(userKey),
+        this.redisClient.del(chatRoomKey),
+        this.redisClient.del(userSessionKey),
+      ]);
     } catch (error) {
-      console.error(error);
+      console.error('Error clearing user data:', error);
     }
   }
 }
