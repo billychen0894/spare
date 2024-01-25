@@ -16,8 +16,7 @@ export class ChatRoomManager {
       () => {
         this.checkInactiveChatRooms().catch(console.error);
       },
-      // 60 * 60 * 1000,
-      30 * 1000,
+      60 * 60 * 1000,
     );
   }
 
@@ -25,7 +24,12 @@ export class ChatRoomManager {
     socket.on(event, async (userId, eventId, callback: any) => {
       const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-      if (isEventProcessed) return;
+      if (isEventProcessed) {
+        callback({
+          status: 'ok',
+        });
+        return;
+      }
 
       // Check user session if it's already existed in Redis
       if (socket.sessionId && socket.chatRoomId) {
@@ -40,7 +44,9 @@ export class ChatRoomManager {
             socket.join(socket.chatRoomId);
             socket.emit('chatRoom-created', { id: socket.chatRoomId, state: chatRoom.state, participants: chatRoom.participants });
 
-            callback();
+            callback({
+              status: 'ok',
+            });
             return;
           }
         }
@@ -62,29 +68,34 @@ export class ChatRoomManager {
           this.io?.of('/chat').to(otherPairedUserId).emit('session', { sessionId: otherPairedUserId, chatRoomId: chatRoom.id });
           this.io?.of('/chat').to(otherPairedUserId).emit('chatRoom-created', chatRoom);
         }
+        callback({
+          status: 'ok',
+        });
       }
-      callback({
-        status: 'ok',
-      });
     });
   }
 
-  // TODO: On disconnect the previous socket events are recovered with new socket, something to do with acknowledgement
   public leaveChatRoom(socket: CustomSocket, event: string): void {
     socket.on(event, async (chatRoomId: string, eventId: string, callback: any) => {
       const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-      if (isEventProcessed) return;
+      if (isEventProcessed) {
+        callback({
+          status: 'ok',
+        });
+        return;
+      }
 
-      if (chatRoomId && socket.sessionId) {
-        socket.to(chatRoomId).emit('left-chat', socket.sessionId);
+      if (chatRoomId && socket?.sessionId) {
+        socket.to(chatRoomId).emit('left-chat', socket?.sessionId);
         socket.leave(chatRoomId);
 
-        await this.redisService.clearUser(socket.sessionId, chatRoomId);
+        await this.redisService.clearUser(socket?.sessionId, chatRoomId);
+
+        callback({
+          status: 'ok',
+        });
       }
-      callback({
-        status: 'ok',
-      });
     });
   }
 
@@ -113,18 +124,23 @@ export class ChatRoomManager {
       try {
         const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-        if (isEventProcessed) return;
+        if (isEventProcessed) {
+          callback({
+            status: 'ok',
+          });
+          return;
+        }
 
         // Retrieve chat messages from Redis
         const chatMessages = await this.redisService.retrieveMessages(chatRoomId);
 
         if (chatMessages) {
           this.io?.of('/chat').to(chatRoomId).emit('chat-history', chatMessages);
-        }
 
-        callback({
-          status: 'ok',
-        });
+          callback({
+            status: 'ok',
+          });
+        }
       } catch (error) {
         console.error(error);
       }
@@ -159,8 +175,7 @@ export class ChatRoomManager {
 
       if (chatRooms && chatRooms?.length > 0) {
         for (const chatRoom of chatRooms) {
-          // const thresholdInSeconds = 2 * 24 * 60 * 60; // two days;
-          const thresholdInSeconds = 30; // 30 sec;
+          const thresholdInSeconds = 2 * 24 * 60 * 60; // two days;
           const isInactive = await this.redisService.isInactive(`chatRoom:${chatRoom?.id}:lastActivity`, thresholdInSeconds);
 
           if (isInactive) {
@@ -189,7 +204,11 @@ export class ChatRoomManager {
       try {
         const isEventProcessed = await this.redisService.processSocketEvent(event, eventId);
 
-        if (isEventProcessed) return;
+        if (isEventProcessed) {
+          callback({
+            status: 'ok',
+          });
+        }
 
         const chatRoom = await this.redisService.getChatRoomById(chatRoomId);
 
