@@ -186,9 +186,12 @@ export class RedisService {
 
   public async deleteChatRoomMessagesById(chatRoomId: string): Promise<void> {
     try {
-      if (chatRoomId) {
-        const key = `chatRoom:${chatRoomId}:messages`;
-        await this.redisClient.DEL(key);
+      const chatRoom = await this.getChatRoomById(chatRoomId);
+      if (chatRoomId && chatRoom) {
+        if (chatRoom.participants.length === 1) {
+          const key = `chatRoom:${chatRoomId}:messages`;
+          await this.redisClient.DEL(key);
+        }
       }
     } catch (error) {
       console.error(error);
