@@ -14,8 +14,6 @@ export class Websocket extends Server {
       },
       connectionStateRecovery: {},
     });
-
-    // Websocket.io = this;
   }
 
   public static getWebsocket(httpServer: any) {
