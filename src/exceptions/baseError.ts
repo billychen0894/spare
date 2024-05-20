@@ -1,7 +1,7 @@
-export class HTTPException extends Error {
+export class BaseError extends Error {
   constructor(
-    public status: number = 500,
     public message: string,
+    public statusCode: number = 500,
     public details?: any,
   ) {
     super(message);
