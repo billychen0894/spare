@@ -3,12 +3,12 @@ import { NextFunction, Request, Response } from 'express';
 import Container from 'typedi';
 
 export class ChatController {
-  public chat = Container.get(ChatService);
+  private chatService = Container.get(ChatService);
 
   public getChatRoomById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const chatRoomId = req.params.chatRoomId;
-      const chatRoom = await this.chat.findChatRoomById(chatRoomId);
+      const chatRoom = await this.chatService.findChatRoomById(chatRoomId);
 
       res.status(200).json({ data: chatRoom });
     } catch (error) {
