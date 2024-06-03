@@ -3,7 +3,7 @@ import { ChatRoomRepository } from '../../src/repositories/chatRoomRepository';
 import { RedisClient } from '../../src/redisClient';
 import { REDIS_URL } from '../../src/config';
 
-describe('ChatRoomRepository Integration Tests', () => {
+describe('ChatRoomRepository Unit Tests', () => {
   let chatRoomRepository: ChatRoomRepository;
   let redisClient: RedisClientType;
   const roomId = 'testRoom';
