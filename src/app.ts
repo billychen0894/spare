@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import morgan from 'morgan';
-import { CREDENTIALS, LOG_FORMAT, NODE_ENV, ORIGIN, PORT } from '@config';
-import { Routes } from '@interfaces/routes.interface';
-import { ErrorMiddleware } from '@middlewares/error.middleware';
-import { logger, stream } from '@utils/logger';
+import { CREDENTIALS, LOG_FORMAT, NODE_ENV, ORIGIN, PORT } from '@/config';
+import { Routes } from '@/interfaces/routes.interface';
+import { ErrorMiddleware } from '@/middlewares/error.middleware';
+import { logger, stream } from '@/utils/logger';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
