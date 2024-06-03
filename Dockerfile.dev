@@ -1,21 +1,3 @@
-# Use NodeJS Version 18 base image
-FROM node:18-buster-slim
-
-# # Copy current directory to ./app within the docker image
-# COPY . ./app
-#
-# # Set working directory of image to /app, commands will be run in this dir
-# WORKDIR /app
-#
-# # Install Node Package
-# RUN npm install --legacy-peer-deps
-#
-# # Set Env
-# ENV NODE_ENV development
-# EXPOSE 4040
-#
-# # Cmd script
-# CMD ["npm", "run", "dev"]
 FROM node:18
 
 # Create app directory
