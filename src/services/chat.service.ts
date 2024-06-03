@@ -35,7 +35,6 @@ export class ChatService {
     eventId: string,
   ): Promise<{ status: string; data: ChatRoom | null }> {
     try {
-      console.log('startChat', userId, sessionId, chatRoomId, eventId);
       const isEventProcessed = await this.eventRepository.processSocketEvent('start-chat', eventId);
 
       if (isEventProcessed) {
