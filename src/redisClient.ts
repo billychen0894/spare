@@ -5,9 +5,9 @@ export class RedisClient {
   private pubClient: RedisClientType;
   private subClient: RedisClientType;
 
-  private constructor() {
+  private constructor(redisUrl: string) {
     this.pubClient = createClient({
-      url: 'redis://redis:6379',
+      url: redisUrl,
     });
     this.subClient = this.pubClient.duplicate();
 
@@ -18,9 +18,9 @@ export class RedisClient {
     this.pubClient.on('ready', () => console.log('Redis Client Ready'));
   }
 
-  public static getInstance(): RedisClient {
+  public static getInstance(redisUrl: string): RedisClient {
     if (!RedisClient.instance) {
-      RedisClient.instance = new RedisClient();
+      RedisClient.instance = new RedisClient(redisUrl);
     }
 
     return RedisClient.instance;

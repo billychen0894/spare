@@ -9,6 +9,7 @@ import { Service } from 'typedi';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisClient } from '@/redisClient';
 import { RedisError, ResourceNotFoundError } from '@/exceptions/customErrors';
+import { REDIS_URL } from '@/config';
 
 @Service()
 export class ChatService {
@@ -17,7 +18,7 @@ export class ChatService {
   private userRepository: UserRepository;
   private userSessionRepository: UserSessionRepository;
   private eventRepository: EventRepository;
-  private redisClient = RedisClient.getInstance().getPubClient();
+  private redisClient = RedisClient.getInstance(REDIS_URL!).getPubClient();
 
   constructor() {
     this.chatRoomRepository = new ChatRoomRepository(this.redisClient);
@@ -34,6 +35,7 @@ export class ChatService {
     eventId: string,
   ): Promise<{ status: string; data: ChatRoom | null }> {
     try {
+      console.log('startChat', userId, sessionId, chatRoomId, eventId);
       const isEventProcessed = await this.eventRepository.processSocketEvent('start-chat', eventId);
 
       if (isEventProcessed) {
@@ -190,7 +192,7 @@ export class ChatService {
     }
   }
 
-  private async pairUsers(): Promise<ChatRoom | null> {
+  public async pairUsers(): Promise<ChatRoom | null> {
     try {
       const user1 = await this.userQueueRepository.dequeueUser();
       const user2 = await this.userQueueRepository.dequeueUser();
